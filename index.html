@@ -1,107 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Escolha uma porta</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo das Portas</title>
   <style>
-    body { font-family: system-ui, Arial; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f3f4f6; margin:0; }
-    .stage { text-align:center; max-width:720px; width:90%; padding:24px; background:white; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.08); }
-    h1 { margin:0 0 12px 0; font-size:1.6rem; }
-    .doors { display:flex; gap:20px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
-    .door { padding:18px 28px; border-radius:10px; cursor:pointer; user-select:none; border:2px solid #1110; background:#eef2ff; min-width:140px; transition:transform .12s ease, box-shadow .12s; }
-    .door:hover { transform:translateY(-4px); box-shadow:0 8px 18px rgba(10,10,10,0.08); }
-    .hidden { display:none; }
-    .final { margin-top:18px; font-weight:600; color:#0b6; }
-    .small { font-size:0.9rem; color:#666; margin-top:8px; }
-    .reset { margin-top:12px; display:inline-block; cursor:pointer; color:#1976d2; text-decoration:underline; }
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin:0; background: #f0f2f5; }
+    .stage { text-align: center; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); max-width: 500px; width: 90%; }
+    h1 { margin-bottom: 16px; }
+    .doors { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .door { background: #eef2ff; border: 2px solid #ccc; padding: 12px 20px; border-radius: 8px; cursor: pointer; transition: 0.2s; user-select: none; }
+    .door:hover { background: #dce0ff; transform: translateY(-2px); }
+    .message { margin-top: 16px; font-weight: bold; color: #0b6; }
+    .reset { margin-top: 12px; cursor: pointer; color: #1976d2; text-decoration: underline; display: inline-block; }
   </style>
 </head>
 <body>
   <div class="stage">
     <h1>Escolha uma porta</h1>
     <div id="container" class="doors"></div>
-    <div id="final" class="final hidden"></div>
-    <div id="info" class="small">Níveis restantes: <span id="levels"></span></div>
-    <div id="reset" class="reset hidden">Reiniciar</div>
+    <div id="message" class="message"></div>
+    <div id="reset" class="reset" style="display:none;">Reiniciar</div>
   </div>
 
   <script>
-    const targets = [
-      "https://i.imgur.com/KQb0CJ8.jpeg"
-    ];
-
-    const TOTAL_LEVELS = 6;
-
-    function b64Encode(str) { return btoa(unescape(encodeURIComponent(str))); }
-    function b64Decode(b64) { return decodeURIComponent(escape(atob(b64))); }
-
-    function buildPathMap(levels, targets) {
-      const map = {};
-      const totalLeaves = Math.pow(2, levels);
-      for (let i = 0; i < totalLeaves; i++) {
-        const t = i < targets.length ? targets[i] : "";
-        map[i.toString(2).padStart(levels, "0")] = t;
-      }
-      return map;
-    }
-
-    const pathMap = buildPathMap(TOTAL_LEVELS, targets);
-    const encodedMap = {};
-    Object.entries(pathMap).forEach(([k, v]) => {
-      encodedMap[k] = v ? b64Encode(v) : "";
-    });
-
-    let currentLevel = 0;
-    let chosenPath = "";
-
+    const firstLevelDoors = 7;
+    let stage = 1;
+    const secondLevelDoors = ["Roskovo", "Café", "Mistério"];
     const container = document.getElementById("container");
-    const finalDiv = document.getElementById("final");
-    const levelsSpan = document.getElementById("levels");
+    const messageDiv = document.getElementById("message");
     const resetEl = document.getElementById("reset");
 
-    function renderDoors() {
+    function renderFirstLevel() {
       container.innerHTML = "";
-      finalDiv.classList.add("hidden");
-      resetEl.classList.add("hidden");
-      levelsSpan.textContent = TOTAL_LEVELS - currentLevel;
-      for (let i = 0; i < 2; i++) {
+      messageDiv.textContent = "";
+      resetEl.style.display = "none";
+      stage = 1;
+      for (let i = 1; i <= firstLevelDoors; i++) {
         const btn = document.createElement("div");
         btn.className = "door";
-        btn.textContent = i === 0 ? "Porta 1" : "Porta 2";
-        btn.dataset.next = btoa((chosenPath + (i ? "1":"0")));
-        btn.onclick = () => choose(i);
+        btn.textContent = "Porta " + i;
+        btn.onclick = () => {
+          if (i === 7) {
+            renderSecondLevel();
+          } else {
+            messageDiv.textContent = "Escolha outra porta!";
+          }
+        };
         container.appendChild(btn);
       }
     }
 
-    function choose(choice) {
-      chosenPath += choice ? "1" : "0";
-      currentLevel++;
-      if (currentLevel >= TOTAL_LEVELS) {
-        const leafKey = parseInt(chosenPath, 2).toString(2).padStart(TOTAL_LEVELS, "0");
-        const encoded = encodedMap[leafKey] || "";
-        if (encoded) {
-          const url = b64Decode(encoded);
-          finalDiv.innerHTML = `🎉 Você encontrou a imagem: <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a><br><img src="${url}" style="max-width:100%; margin-top:12px; border-radius:8px;">`;
-        } else {
-          finalDiv.textContent = "Não há link escondido aqui — porta vazia.";
-        }
-        finalDiv.classList.remove("hidden");
-        container.innerHTML = "";
-        resetEl.classList.remove("hidden");
-      } else {
-        renderDoors();
-      }
+    function renderSecondLevel() {
+      stage = 2;
+      container.innerHTML = "";
+      messageDiv.textContent = "";
+      secondLevelDoors.forEach(name => {
+        const btn = document.createElement("div");
+        btn.className = "door";
+        btn.textContent = name;
+        btn.onclick = () => {
+          if (name === "Café") {
+            messageDiv.textContent = "Parabéns você acaba de adquirir o curso de café do Erick, agora está devendo a ele infinito beijões 💌";
+          } else if (name === "Roskovo") {
+            messageDiv.textContent = "Parabéns o Erick acaba de comprar seu curso de Roskovo, agora ele está lhe devendo infinitos beijões 💌";
+          } else if (name === "Mistério") {
+            messageDiv.innerHTML = `🎉 Você encontrou a imagem: <a href="https://i.imgur.com/KQb0CJ8.jpeg" target="_blank">Clique aqui</a><br><img src="https://i.imgur.com/KQb0CJ8.jpeg" style="max-width:100%; margin-top:12px; border-radius:8px;">`;
+          }
+          resetEl.style.display = "inline-block";
+        };
+        container.appendChild(btn);
+      });
     }
 
     resetEl.onclick = () => {
-      currentLevel = 0;
-      chosenPath = "";
-      renderDoors();
+      renderFirstLevel();
     };
 
-    renderDoors();
+    renderFirstLevel();
   </script>
 </body>
 </html>
